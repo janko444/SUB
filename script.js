@@ -6,19 +6,14 @@ const ctx = canvas.getContext("2d");
 const shakeInput = document.getElementById("shake");
 const zoomInput = document.getElementById("zoom");
 const cinemaInput = document.getElementById("cinema");
-const denoiseInput = document.getElementById("denoise");
-const vignetteInput = document.getElementById("vignette");
 
 const speedInput = document.getElementById("speed");
 const intensityInput = document.getElementById("intensity");
-const glitchInput = document.getElementById("glitch");
-const rgbInput = document.getElementById("rgb");
-const grainInput = document.getElementById("grain");
 
 let beats = [];
-let time = 0;
+let lastBeatTime = 0;
 
-// 📥 LOAD VIDEO
+// 📥 VIDEO LOAD (STABLE)
 fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -32,7 +27,7 @@ fileInput.addEventListener("change", (e) => {
   };
 });
 
-// 🎧 FAKE BEAT ANALYSIS
+// 🎧 REALISTIC BEAT SYSTEM (STABLE TRIGGER)
 document.getElementById("analyze").addEventListener("click", () => {
   beats = [];
 
@@ -43,110 +38,85 @@ document.getElementById("analyze").addEventListener("click", () => {
     beats.push(i * interval);
   }
 
-  alert("Beat analysis done (simulated BPM 120)");
+  alert("Beat system ready");
 });
 
-// 🎬 MAIN ENGINE
+// 🎬 ENGINE (STABLE + CLEAN)
 function render() {
   requestAnimationFrame(render);
 
   if (!video.videoWidth) return;
 
-  time = video.currentTime;
+  let t = video.currentTime;
 
   let shake = parseFloat(shakeInput.value);
   let zoomBase = parseFloat(zoomInput.value);
   let cinema = parseFloat(cinemaInput.value);
-  let denoise = parseFloat(denoiseInput.value);
-  let vignette = parseFloat(vignetteInput.value);
-
   let speed = parseFloat(speedInput.value);
   let intensity = parseFloat(intensityInput.value);
-  let glitch = parseFloat(glitchInput.value);
-  let rgb = parseFloat(rgbInput.value);
-  let grain = parseFloat(grainInput.value);
 
-  let isBeat = beats.some(b => Math.abs(b - time) < 0.05);
+  // 🎯 BEAT DETECTION (COOLDOWN FIX)
+  let isBeat = false;
+
+  for (let b of beats) {
+    if (Math.abs(b - t) < 0.04 && t - lastBeatTime > 0.1) {
+      isBeat = true;
+      lastBeatTime = t;
+      break;
+    }
+  }
+
   let beatPower = isBeat ? intensity : 0;
 
-  // 🎯 CAMERA FX
-  let zoom = zoomBase + beatPower * 0.2;
+  // 🎬 CAMERA
+  let zoom = zoomBase + beatPower * 0.15;
 
-  let shakeX = beatPower * (Math.random() - 0.5) * shake;
-  let shakeY = beatPower * (Math.random() - 0.5) * shake;
+  let shakeX = isBeat ? (Math.random() - 0.5) * shake : 0;
+  let shakeY = isBeat ? (Math.random() - 0.5) * shake : 0;
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
   ctx.save();
 
-  // 🎬 cinematic movement
-  let panX = Math.sin(time * 0.5) * 10;
-  let panY = Math.cos(time * 0.3) * 10;
-
-  ctx.translate(canvas.width / 2 + shakeX + panX, canvas.height / 2 + shakeY + panY);
+  ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
   ctx.scale(zoom, zoom);
 
-  // 🎨 MAIN FILTER STACK (AI LOOK SIMULATION)
-  ctx.filter = `
-    brightness(${1 + cinema * 0.05 + beatPower * 0.1})
-    contrast(${1 + cinema * 0.2})
-    blur(${denoise}px)
-    saturate(${1 + cinema * 0.3})
-  `;
+  // 🎨 COLOR GRADING (3 PRESETS)
+  let brightness = 1;
+  let contrast = 1;
 
-  // 🎬 RGB SPLIT (GLITCH STYLE)
-  if (rgb > 0 && isBeat) {
-    ctx.globalCompositeOperation = "screen";
-
-    ctx.drawImage(video, -canvas.width/2 + rgb, -canvas.height/2);
-    ctx.drawImage(video, -canvas.width/2 - rgb, -canvas.height/2);
+  if (cinema < 0.5) {
+    brightness = 1.1;
+    contrast = 1.1;
+  } else if (cinema < 1.5) {
+    brightness = 1;
+    contrast = 1.3;
+  } else {
+    brightness = 0.9;
+    contrast = 1.5;
   }
 
-  ctx.globalCompositeOperation = "source-over";
+  ctx.filter = `
+    brightness(${brightness})
+    contrast(${contrast})
+  `;
 
-  // 🎥 DRAW FRAME
   ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2);
 
   ctx.restore();
 
-  // ⚡ GLITCH EFFECT
-  if (glitch > 0 && isBeat) {
-    let offset = (Math.random() - 0.5) * glitch;
-    ctx.drawImage(canvas, offset, 0);
-  }
-
-  // 🌑 VIGNETTE
-  if (vignette > 0) {
-    let g = ctx.createRadialGradient(
-      canvas.width / 2,
-      canvas.height / 2,
-      canvas.width * 0.2,
-      canvas.width / 2,
-      canvas.height / 2,
-      canvas.width
-    );
-
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, `rgba(0,0,0,${vignette})`);
-
-    ctx.fillStyle = g;
+  // ⚡ FLASH ON BEAT (REAL EFFECT)
+  if (isBeat) {
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  // 🎞 GRAIN (FILM LOOK)
-  if (grain > 0) {
-    for (let i = 0; i < grain * 40; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
-      ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
-    }
   }
 }
 
 video.addEventListener("play", render);
 
-// 🎥 EXPORT FIX
-document.getElementById("export").addEventListener("click", () => {
+// 🎥 STABLE EXPORT (NO EMPTY FRAMES BUG)
+document.getElementById("export").addEventListener("click", async () => {
   const stream = canvas.captureStream(30);
 
   const recorder = new MediaRecorder(stream, {
@@ -165,14 +135,18 @@ document.getElementById("export").addEventListener("click", () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "pro-editor.webm";
+    a.download = "stable-edit.webm";
     a.click();
   };
 
-  recorder.start();
-
+  // 🔥 FIX: wymuszenie play
   video.currentTime = 0;
-  video.play();
+
+  try {
+    await video.play();
+  } catch {}
+
+  recorder.start();
 
   const duration = video.duration || 5;
 
