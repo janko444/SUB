@@ -1,76 +1,107 @@
-const videoInput = document.getElementById("videoInput");
+const fileInput = document.getElementById("fileInput");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const audio = document.getElementById("audio");
-
 const shakeInput = document.getElementById("shake");
 const zoomInput = document.getElementById("zoom");
+const cinemaInput = document.getElementById("cinema");
+const denoiseInput = document.getElementById("denoise");
+const vignetteInput = document.getElementById("vignette");
 
-let fileURL;
 let beats = [];
 let time = 0;
 
 // 📥 LOAD VIDEO
-videoInput.addEventListener("change", (e) => {
+fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
-  fileURL = URL.createObjectURL(file);
-  video.src = fileURL;
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  video.src = url;
+
+  video.onloadedmetadata = () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  };
 });
 
-// 🎧 SIMPLE BEAT DETECTION (FAKE BPM SIMULATION)
+// 🎧 BEAT SIMULATION
 document.getElementById("analyze").addEventListener("click", () => {
   beats = [];
 
-  const bpm = 120; // pseudo BPM
+  const bpm = 120;
   const interval = 60 / bpm;
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 100; i++) {
     beats.push(i * interval);
   }
 
-  alert("Beat analysis done (simulated BPM 120)");
+  alert("Beat analysis done (simulated)");
 });
 
-// 🎬 RENDER ENGINE
+// 🎬 RENDER ENGINE (AE + CAPCUT STYLE)
 function render() {
   requestAnimationFrame(render);
 
   if (!video.videoWidth) return;
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
   time = video.currentTime;
 
   let shake = parseFloat(shakeInput.value);
   let zoomBase = parseFloat(zoomInput.value);
+  let cinema = parseFloat(cinemaInput.value);
+  let denoise = parseFloat(denoiseInput.value);
+  let vignette = parseFloat(vignetteInput.value);
 
-  // 🎯 CHECK BEAT PULSE
   let isBeat = beats.some(b => Math.abs(b - time) < 0.05);
 
-  let zoom = isBeat ? zoomBase + 0.2 : zoomBase;
+  let zoom = isBeat ? zoomBase + 0.15 : zoomBase;
   let shakeX = isBeat ? (Math.random() - 0.5) * shake : 0;
   let shakeY = isBeat ? (Math.random() - 0.5) * shake : 0;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
   ctx.save();
 
   ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
   ctx.scale(zoom, zoom);
 
-  ctx.drawImage(
-    video,
-    -canvas.width / 2,
-    -canvas.height / 2
-  );
+  // 🎨 "AI LOOK" FILTER STACK
+  ctx.filter = `
+    brightness(${1 + cinema * 0.05})
+    contrast(${1 + cinema * 0.2})
+    blur(${denoise}px)
+    saturate(${1 + cinema * 0.3})
+  `;
+
+  ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2);
 
   ctx.restore();
+
+  // 🌑 VIGNETTE
+  if (vignette > 0) {
+    let g = ctx.createRadialGradient(
+      canvas.width/2,
+      canvas.height/2,
+      canvas.width * 0.2,
+      canvas.width/2,
+      canvas.height/2,
+      canvas.width
+    );
+
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, `rgba(0,0,0,${vignette})`);
+
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
 }
 
 video.addEventListener("play", render);
 
-// 🎥 EXPORT VIDEO
+// 🎥 EXPORT FIX (STABILNY)
 document.getElementById("export").addEventListener("click", () => {
   const stream = canvas.captureStream(30);
 
@@ -80,7 +111,9 @@ document.getElementById("export").addEventListener("click", () => {
 
   let chunks = [];
 
-  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
 
   recorder.onstop = () => {
     const blob = new Blob(chunks, { type: "video/webm" });
@@ -88,11 +121,18 @@ document.getElementById("export").addEventListener("click", () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "beat-sync.webm";
+    a.download = "beat-sync-pro.webm";
     a.click();
   };
 
   recorder.start();
 
-  setTimeout(() => recorder.stop(), 8000);
+  video.currentTime = 0;
+  video.play();
+
+  const duration = video.duration || 5;
+
+  setTimeout(() => {
+    recorder.stop();
+  }, duration * 1000);
 });
