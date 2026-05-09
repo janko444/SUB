@@ -9,6 +9,12 @@ const cinemaInput = document.getElementById("cinema");
 const denoiseInput = document.getElementById("denoise");
 const vignetteInput = document.getElementById("vignette");
 
+const speedInput = document.getElementById("speed");
+const intensityInput = document.getElementById("intensity");
+const glitchInput = document.getElementById("glitch");
+const rgbInput = document.getElementById("rgb");
+const grainInput = document.getElementById("grain");
+
 let beats = [];
 let time = 0;
 
@@ -26,21 +32,21 @@ fileInput.addEventListener("change", (e) => {
   };
 });
 
-// 🎧 BEAT SIMULATION
+// 🎧 FAKE BEAT ANALYSIS
 document.getElementById("analyze").addEventListener("click", () => {
   beats = [];
 
   const bpm = 120;
   const interval = 60 / bpm;
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 200; i++) {
     beats.push(i * interval);
   }
 
-  alert("Beat analysis done (simulated)");
+  alert("Beat analysis done (simulated BPM 120)");
 });
 
-// 🎬 RENDER ENGINE (AE + CAPCUT STYLE)
+// 🎬 MAIN ENGINE
 function render() {
   requestAnimationFrame(render);
 
@@ -54,40 +60,70 @@ function render() {
   let denoise = parseFloat(denoiseInput.value);
   let vignette = parseFloat(vignetteInput.value);
 
-  let isBeat = beats.some(b => Math.abs(b - time) < 0.05);
+  let speed = parseFloat(speedInput.value);
+  let intensity = parseFloat(intensityInput.value);
+  let glitch = parseFloat(glitchInput.value);
+  let rgb = parseFloat(rgbInput.value);
+  let grain = parseFloat(grainInput.value);
 
-  let zoom = isBeat ? zoomBase + 0.15 : zoomBase;
-  let shakeX = isBeat ? (Math.random() - 0.5) * shake : 0;
-  let shakeY = isBeat ? (Math.random() - 0.5) * shake : 0;
+  let isBeat = beats.some(b => Math.abs(b - time) < 0.05);
+  let beatPower = isBeat ? intensity : 0;
+
+  // 🎯 CAMERA FX
+  let zoom = zoomBase + beatPower * 0.2;
+
+  let shakeX = beatPower * (Math.random() - 0.5) * shake;
+  let shakeY = beatPower * (Math.random() - 0.5) * shake;
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
   ctx.save();
 
-  ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
+  // 🎬 cinematic movement
+  let panX = Math.sin(time * 0.5) * 10;
+  let panY = Math.cos(time * 0.3) * 10;
+
+  ctx.translate(canvas.width / 2 + shakeX + panX, canvas.height / 2 + shakeY + panY);
   ctx.scale(zoom, zoom);
 
-  // 🎨 "AI LOOK" FILTER STACK
+  // 🎨 MAIN FILTER STACK (AI LOOK SIMULATION)
   ctx.filter = `
-    brightness(${1 + cinema * 0.05})
+    brightness(${1 + cinema * 0.05 + beatPower * 0.1})
     contrast(${1 + cinema * 0.2})
     blur(${denoise}px)
     saturate(${1 + cinema * 0.3})
   `;
 
+  // 🎬 RGB SPLIT (GLITCH STYLE)
+  if (rgb > 0 && isBeat) {
+    ctx.globalCompositeOperation = "screen";
+
+    ctx.drawImage(video, -canvas.width/2 + rgb, -canvas.height/2);
+    ctx.drawImage(video, -canvas.width/2 - rgb, -canvas.height/2);
+  }
+
+  ctx.globalCompositeOperation = "source-over";
+
+  // 🎥 DRAW FRAME
   ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2);
 
   ctx.restore();
 
+  // ⚡ GLITCH EFFECT
+  if (glitch > 0 && isBeat) {
+    let offset = (Math.random() - 0.5) * glitch;
+    ctx.drawImage(canvas, offset, 0);
+  }
+
   // 🌑 VIGNETTE
   if (vignette > 0) {
     let g = ctx.createRadialGradient(
-      canvas.width/2,
-      canvas.height/2,
+      canvas.width / 2,
+      canvas.height / 2,
       canvas.width * 0.2,
-      canvas.width/2,
-      canvas.height/2,
+      canvas.width / 2,
+      canvas.height / 2,
       canvas.width
     );
 
@@ -95,13 +131,21 @@ function render() {
     g.addColorStop(1, `rgba(0,0,0,${vignette})`);
 
     ctx.fillStyle = g;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // 🎞 GRAIN (FILM LOOK)
+  if (grain > 0) {
+    for (let i = 0; i < grain * 40; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
+      ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
+    }
   }
 }
 
 video.addEventListener("play", render);
 
-// 🎥 EXPORT FIX (STABILNY)
+// 🎥 EXPORT FIX
 document.getElementById("export").addEventListener("click", () => {
   const stream = canvas.captureStream(30);
 
@@ -121,7 +165,7 @@ document.getElementById("export").addEventListener("click", () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "beat-sync-pro.webm";
+    a.download = "pro-editor.webm";
     a.click();
   };
 
