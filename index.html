@@ -2,23 +2,26 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Video Editor Studio PRO</title>
+<title>Studio Editor PRO X</title>
 
 <style>
 body {
   margin: 0;
-  background: #0b0b0f;
+  background: radial-gradient(circle at top, #0f0f1a, #050507);
   color: white;
   font-family: Arial;
 }
 
+/* HEADER */
 h1 {
   text-align: center;
   margin: 10px;
-  font-size: 20px;
+  font-size: 22px;
   color: #00ffcc;
+  letter-spacing: 1px;
 }
 
+/* PREVIEW */
 .layout {
   display: flex;
   justify-content: center;
@@ -28,65 +31,82 @@ h1 {
 
 video, canvas {
   width: 420px;
+  border-radius: 14px;
+  box-shadow: 0 0 25px rgba(0,255,204,0.15);
   background: black;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,255,204,0.2);
 }
 
-/* 🧠 PANEL SYSTEM (jak AE) */
+/* MAIN GRID */
 .panel {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  width: 90%;
+  width: 92%;
   margin: 20px auto;
 }
 
-/* 📦 KARTY */
+/* GLASS CARDS */
 .card {
-  background: #151520;
-  padding: 10px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,255,204,0.1);
+  border-radius: 14px;
+  padding: 12px;
+  transition: 0.2s;
 }
 
+.card:hover {
+  border: 1px solid rgba(0,255,204,0.4);
+}
+
+/* TITLE */
 .card h3 {
-  margin: 5px 0;
+  margin: 5px 0 10px;
   font-size: 12px;
   color: #00ffcc;
+  letter-spacing: 1px;
 }
 
-/* 🎚 SUWAKI PRO */
+/* SLIDERS */
 input[type="range"] {
   width: 100%;
   accent-color: #00ffcc;
+  margin-bottom: 8px;
 }
 
-/* 🔘 BUTTONS */
+/* BUTTONS */
 button {
   width: 100%;
   padding: 8px;
-  margin-top: 5px;
-  background: #00ffcc;
+  background: linear-gradient(90deg, #00ffcc, #00c3ff);
   border: none;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: bold;
-  border-radius: 8px;
+  color: #000;
+  margin-top: 5px;
 }
 
 button:hover {
-  background: #00e6b8;
+  opacity: 0.9;
 }
 
-label {
-  font-size: 11px;
+/* SELECT */
+select {
+  width: 100%;
+  padding: 6px;
+  border-radius: 8px;
+  background: #111;
+  color: white;
+  border: 1px solid #00ffcc33;
 }
 
 /* TOGGLES */
-.toggle {
+.row {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
+  margin-top: 5px;
 }
 </style>
 
@@ -94,7 +114,7 @@ label {
 
 <body>
 
-<h1>🎬 VIDEO EDITOR STUDIO PRO</h1>
+<h1>🎬 STUDIO EDITOR PRO X</h1>
 
 <input type="file" id="fileInput">
 
@@ -109,77 +129,67 @@ label {
   <div class="card">
     <h3>🎧 BEAT ENGINE</h3>
 
-    <label>Shake</label>
     <input type="range" id="shake" min="0" max="20" value="5">
-
-    <label>Zoom</label>
     <input type="range" id="zoom" min="1" max="2" step="0.1" value="1.05">
-
-    <label>Intensity</label>
     <input type="range" id="intensity" min="0" max="2" step="0.1" value="1">
 
     <button id="analyze">Analyze Beat</button>
   </div>
 
-  <!-- 🎨 LOOK -->
+  <!-- 🎨 COLOR -->
   <div class="card">
-    <h3>🎨 COLOR / LOOK</h3>
+    <h3>🎨 COLOR GRADE</h3>
 
-    <label>Cinematic</label>
     <input type="range" id="cinema" min="0" max="2" step="0.1" value="1">
-
-    <label>Contrast Boost</label>
     <input type="range" id="contrast" min="1" max="2" step="0.1" value="1.2">
-
-    <label>Saturation</label>
     <input type="range" id="sat" min="0" max="2" step="0.1" value="1.2">
 
-    <label>Denoise</label>
-    <input type="range" id="denoise" min="0" max="3" step="0.1" value="0">
-  </div>
-
-  <!-- 🎬 EDIT -->
-  <div class="card">
-    <h3>✂️ EDIT</h3>
-
-    <label>Start Trim</label>
-    <input type="range" id="startTrim" min="0" max="10" step="0.1" value="0">
-
-    <label>End Trim</label>
-    <input type="range" id="endTrim" min="1" max="60" step="0.1" value="10">
-
-    <label>Speed</label>
-    <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
-
-    <label>Quality</label>
-    <select id="quality">
-      <option value="low">Low</option>
-      <option value="high">High</option>
+    <select id="preset">
+      <option>Cinematic</option>
+      <option>Neon</option>
+      <option>Clean</option>
+      <option>Dark Mood</option>
     </select>
   </div>
 
-  <!-- ⚙️ FX -->
+  <!-- ✂️ EDIT -->
   <div class="card">
-    <h3>⚡ FX</h3>
+    <h3>✂️ EDIT TOOLS</h3>
 
-    <label>Glitch</label>
-    <input type="range" id="glitch" min="0" max="20" value="0">
+    <input type="range" id="startTrim" min="0" max="10" step="0.1" value="0">
+    <input type="range" id="endTrim" min="1" max="60" step="0.1" value="10">
 
-    <label>RGB Split</label>
-    <input type="range" id="rgb" min="0" max="10" value="0">
+    <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
 
-    <label>Vignette</label>
-    <input type="range" id="vignette" min="0" max="1" step="0.1" value="0">
-
-    <label>Grain</label>
-    <input type="range" id="grain" min="0" max="50" value="0">
-
-    <div class="toggle">
+    <div class="row">
       <label><input type="checkbox" id="loop"> Loop</label>
       <label><input type="checkbox" id="freeze"> Freeze</label>
     </div>
+  </div>
 
-    <button id="export">Export</button>
+  <!-- ⚡ FX -->
+  <div class="card">
+    <h3>⚡ EFFECTS</h3>
+
+    <input type="range" id="glitch" min="0" max="20" value="0">
+    <input type="range" id="rgb" min="0" max="10" value="0">
+    <input type="range" id="vignette" min="0" max="1" step="0.1" value="0">
+    <input type="range" id="grain" min="0" max="50" value="0">
+
+    <button id="export">Export Video</button>
+  </div>
+
+  <!-- 🧠 ADVANCED -->
+  <div class="card">
+    <h3>🧠 ADVANCED</h3>
+
+    <select id="quality">
+      <option value="low">Low Perf</option>
+      <option value="high">High Quality</option>
+    </select>
+
+    <input type="range" id="sharp" min="0" max="2" step="0.1" value="0">
+    <input type="range" id="denoise" min="0" max="3" step="0.1" value="0">
   </div>
 
 </div>
